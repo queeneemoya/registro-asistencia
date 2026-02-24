@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Registro de Asistencia - Mechoneo
 
-## Getting Started
+Aplicación web con **Next.js**, **Tailwind CSS** y **Supabase (PostgreSQL)** para registro de asistencia y restricciones alimentarias.
 
-First, run the development server:
+## Funcionalidades
+
+### Vista Usuario
+- Buscar por RUT (con dígito verificador).
+- Ver nombre y **carrera**.
+- Registrar asistencia (obligatorio).
+- Indicar restricción alimentaria: ninguna, vegano, vegetariano o celíaco.
+
+### Vista Administrador
+- Subir archivo **XLS/XLSX** con columnas: RUT, DV, nombres, apellido paterno, apellido materno, correo UAI, sección CORE, **carrera**.
+- Ver listado de personas **registradas** y **no registradas** (con columna Carrera y Sección).
+- Editar datos de personas (incl. carrera).
+- Añadir personas manualmente (fuera de la lista del archivo).
+- Ver **conteo general** (total, registrados, sin registrar).
+- Ver **conteo por sección CORE** y **por carrera**.
+
+## Requisitos
+
+- Node.js 18+
+- Cuenta en [Supabase](https://supabase.com).
+
+## Configuración
+
+### 1. Variables de entorno
+
+Copia el ejemplo y complétalo con los datos de tu proyecto Supabase:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.local.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Edita `.env.local`:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `NEXT_PUBLIC_SUPABASE_URL`: URL del proyecto (Settings → API).
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: clave anónima (Settings → API).
+- `SUPABASE_SERVICE_ROLE_KEY`: clave service role (Settings → API). **No exponer en el front.**
+- `ADMIN_PASSWORD`: contraseña para acceder al panel de administrador.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 2. Base de datos en Supabase
 
-## Learn More
+En el **SQL Editor** de tu proyecto Supabase, ejecuta el contenido del archivo:
 
-To learn more about Next.js, take a look at the following resources:
+```
+supabase/schema.sql
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Crea las tablas `personas` y `asistencias` con los índices y políticas RLS indicados.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 3. Instalación y ejecución
 
-## Deploy on Vercel
+```bash
+npm install
+npm run dev
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Abre [http://localhost:3000](http://localhost:3000).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Usuario:** [http://localhost:3000/usuario](http://localhost:3000/usuario).
+- **Administrador:** [http://localhost:3000/admin](http://localhost:3000/admin) (pedirá la contraseña configurada en `ADMIN_PASSWORD`).
+
+## Formato del archivo XLS
+
+El archivo debe tener una primera hoja con cabeceras (primera fila). Nombres de columna esperados (mayúsculas/minúsculas y espacios flexibles):
+
+| RUT | DV | nombres | apellido paterno | apellido materno | correo UAI | sección CORE | carrera |
+|-----|----|---------|------------------|------------------|------------|--------------|---------|
+
+Puedes usar variantes como "correo UAI", "seccion core", "carrera", etc. El sistema hace coincidencia flexible por nombre de columna. La columna **carrera** es la que ve el usuario al buscar por RUT.
+
+## Estructura del proyecto
+
+- `src/app/page.tsx` – Inicio (enlaces Usuario / Administrador).
+- `src/app/usuario/page.tsx` – Buscador por RUT y registro de asistencia.
+- `src/app/admin/page.tsx` – Login administrador.
+- `src/app/admin/dashboard/page.tsx` – Panel: subida XLS, listados, edición, conteos.
+- `src/app/api/` – Rutas API (buscar persona, registrar asistencia, admin: personas, upload, stats).
+- `src/lib/supabase.ts` – Cliente Supabase.
+- `src/lib/admin-auth.ts` – Sesión administrador por cookie.
+- `supabase/schema.sql` – Esquema PostgreSQL para Supabase.
+
+## Tecnologías
+
+- **Next.js 14** (App Router)
+- **Tailwind CSS**
+- **Supabase** (PostgreSQL, cliente JS)
+- **xlsx** – Lectura de archivos Excel
