@@ -142,6 +142,8 @@ export default function AdminDashboardPage() {
         ? personas.filter((p) => !p.asistencia)
         : personas;
 
+  const carrerasExistentes = Array.from(new Set(personas.map((p) => p.carrera).filter((c): c is string => !!c))).sort();
+
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-6xl mx-auto">
@@ -414,6 +416,7 @@ export default function AdminDashboardPage() {
 
       {addOpen && (
         <AddPersonaModal
+          carrerasExistentes={carrerasExistentes}
           onClose={() => setAddOpen(false)}
           onSaved={() => {
             setAddOpen(false);
@@ -436,9 +439,11 @@ export default function AdminDashboardPage() {
 }
 
 function AddPersonaModal({
+  carrerasExistentes,
   onClose,
   onSaved,
 }: {
+  carrerasExistentes: string[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -452,6 +457,7 @@ function AddPersonaModal({
     seccion_core: "",
     carrera: "",
   });
+  const [carreraOtra, setCarreraOtra] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -466,7 +472,7 @@ function AddPersonaModal({
         body: JSON.stringify({
           ...form,
           correo_uai: form.correo_uai || undefined,
-          carrera: form.carrera || undefined,
+          carrera: form.carrera || carreraOtra.trim() || undefined,
         }),
       });
       const data = await res.json();
@@ -554,12 +560,27 @@ function AddPersonaModal({
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Carrera</label>
-            <input
+            <select
               value={form.carrera}
               onChange={(e) => setForm((f) => ({ ...f, carrera: e.target.value }))}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              placeholder="Ej: Ingeniería Civil"
-            />
+            >
+              <option value="">Otra (escribir)</option>
+              {carrerasExistentes.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            {form.carrera === "" && (
+              <input
+                type="text"
+                value={carreraOtra}
+                onChange={(e) => setCarreraOtra(e.target.value)}
+                placeholder="Escribir carrera"
+                className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+            )}
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex gap-2 pt-2">
