@@ -258,9 +258,8 @@ export default function AdminDashboardPage() {
                 <tbody>
                   {[
                     { key: "ninguna", label: "Ninguna" },
-                    { key: "vegano", label: "Vegano" },
-                    { key: "vegetariano", label: "Vegetariano" },
                     { key: "celiaco", label: "Celíaco" },
+                    { key: "vegetariano_vegano", label: "Vegetariano/vegano" },
                   ].map(({ key, label }) => (
                     <tr key={key} className="border-b border-slate-100">
                       <td className="py-2 pr-4 font-medium text-slate-800">{label}</td>
@@ -374,7 +373,11 @@ export default function AdminDashboardPage() {
                         p.asistencia.restriccion_alimentaria !== "ninguna"
                           ? p.asistencia.restriccion_alimentaria === "celiaco"
                             ? "Celíaco"
-                            : p.asistencia.restriccion_alimentaria.replace("_", " ")
+                            : p.asistencia.restriccion_alimentaria === "vegetariano_vegano" ||
+                                p.asistencia.restriccion_alimentaria === "vegano" ||
+                                p.asistencia.restriccion_alimentaria === "vegetariano"
+                              ? "Vegetariano/vegano"
+                              : p.asistencia.restriccion_alimentaria.replace("_", " ")
                           : "—"}
                       </td>
                       <td className="px-4 py-3">

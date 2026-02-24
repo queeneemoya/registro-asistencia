@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS asistencias (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   persona_id UUID NOT NULL REFERENCES personas(id) ON DELETE CASCADE,
   registrado_at TIMESTAMPTZ DEFAULT now(),
-  restriccion_alimentaria TEXT CHECK (restriccion_alimentaria IN ('ninguna', 'vegano', 'vegetariano', 'celiaco')),
+  restriccion_alimentaria TEXT CHECK (restriccion_alimentaria IN ('ninguna', 'celiaco', 'vegetariano')),
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(persona_id)
 );
@@ -79,3 +79,7 @@ CREATE TRIGGER personas_updated_at
 -- Si ya tenías "intolerante_gluten" en restricción alimentaria, actualizar a "celiaco":
 -- UPDATE asistencias SET restriccion_alimentaria = 'celiaco' WHERE restriccion_alimentaria = 'intolerante_gluten';
 -- Luego ajustar el CHECK de la tabla asistencias (quitar 'intolerante_gluten', dejar 'celiaco').
+
+-- Si tenías "vegano" o "vegetariano" y ahora usas solo "vegetariano_vegano":
+-- UPDATE asistencias SET restriccion_alimentaria = 'vegetariano_vegano' WHERE restriccion_alimentaria IN ('vegano', 'vegetariano');
+-- Luego ajustar el CHECK a: IN ('ninguna', 'celiaco', 'vegetariano_vegano').

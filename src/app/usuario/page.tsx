@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 
-type Restriccion = "ninguna" | "vegano" | "vegetariano" | "celiaco";
+type Restriccion = "ninguna" | "celiaco" | "vegetariano_vegano";
 
 interface PersonaEncontrada {
   id: string;
@@ -133,43 +133,73 @@ export default function UsuarioPage() {
 
         {persona && (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-5">
-            <div>
-              <p className="text-sm text-slate-500">Nombres</p>
-              <p className="text-lg font-semibold text-slate-800">{persona.nombres}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-slate-500">Apellido paterno</p>
-                <p className="text-lg font-semibold text-slate-800">{persona.apellido_paterno}</p>
-              </div>
-              <div>
-                <p className="text-sm text-slate-500">Apellido materno</p>
-                <p className="text-lg font-semibold text-slate-800">{persona.apellido_materno}</p>
-              </div>
-            </div>
-            <div>
-              <p className="text-sm text-slate-500">Carrera</p>
-              <p className="text-lg font-semibold text-slate-800">
-                {persona.carrera || "—"}
-              </p>
-            </div>
-            <div className="rounded-xl bg-sky-50 border-2 border-sky-200 px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-sky-600 mb-1">Sección CORE</p>
-              <p className="text-2xl font-bold text-sky-700">{persona.seccion_core}</p>
-            </div>
-
             {registrado ? (
-              <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4 pt-4">
-                <p className="font-medium text-emerald-800">Asistencia ya registrada</p>
-                {persona.asistencia?.restriccion_alimentaria &&
-                  persona.asistencia.restriccion_alimentaria !== "ninguna" && (
-                    <p className="text-sm text-emerald-700 mt-1">
-                      Restricción indicada: {persona.asistencia.restriccion_alimentaria === "celiaco" ? "Celíaco" : persona.asistencia.restriccion_alimentaria.replace("_", " ")}
+              <>
+                <div className="rounded-xl bg-amber-50 border-2 border-amber-200 px-5 py-4">
+                  <p className="font-bold text-amber-800 text-lg">Esta persona ya fue registrada</p>
+                  <p className="text-sm text-amber-700 mt-1">
+                    No es necesario volver a registrar. A continuación los datos del participante:
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs text-slate-500 uppercase tracking-wide">Nombre</p>
+                    <p className="text-lg font-semibold text-slate-800">
+                      {persona.nombres} {persona.apellido_paterno} {persona.apellido_materno}
                     </p>
-                  )}
-              </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 uppercase tracking-wide">Carrera</p>
+                    <p className="text-lg font-semibold text-slate-800">{persona.carrera || "—"}</p>
+                  </div>
+                  <div className="rounded-lg bg-sky-50 border border-sky-200 px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-sky-600 mb-0.5">Sección CORE</p>
+                    <p className="text-xl font-bold text-sky-700">{persona.seccion_core}</p>
+                  </div>
+                  {persona.asistencia?.restriccion_alimentaria &&
+                    persona.asistencia.restriccion_alimentaria !== "ninguna" && (
+                      <p className="text-sm text-slate-600">
+                        Restricción alimentaria indicada:{" "}
+                        <span className="font-medium">
+                          {persona.asistencia.restriccion_alimentaria === "celiaco"
+                            ? "Celíaco"
+                            : persona.asistencia.restriccion_alimentaria === "vegetariano_vegano" ||
+                                persona.asistencia.restriccion_alimentaria === "vegano" ||
+                                persona.asistencia.restriccion_alimentaria === "vegetariano"
+                              ? "Vegetariano/vegano"
+                              : persona.asistencia.restriccion_alimentaria.replace("_", " ")}
+                        </span>
+                      </p>
+                    )}
+                </div>
+              </>
             ) : (
               <>
+                <div>
+                  <p className="text-sm text-slate-500">Nombres</p>
+                  <p className="text-lg font-semibold text-slate-800">{persona.nombres}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-slate-500">Apellido paterno</p>
+                    <p className="text-lg font-semibold text-slate-800">{persona.apellido_paterno}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Apellido materno</p>
+                    <p className="text-lg font-semibold text-slate-800">{persona.apellido_materno}</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Carrera</p>
+                  <p className="text-lg font-semibold text-slate-800">
+                    {persona.carrera || "—"}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-sky-50 border-2 border-sky-200 px-5 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-sky-600 mb-1">Sección CORE</p>
+                  <p className="text-2xl font-bold text-sky-700">{persona.seccion_core}</p>
+                </div>
+
                 <div className="pt-2 border-t border-slate-200">
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     ¿Tienes alguna restricción alimentaria?
@@ -180,9 +210,8 @@ export default function UsuarioPage() {
                     className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none"
                   >
                     <option value="ninguna">Ninguna</option>
-                    <option value="vegano">Vegano</option>
-                    <option value="vegetariano">Vegetariano</option>
                     <option value="celiaco">Celíaco</option>
+                    <option value="vegetariano_vegano">Vegetariano/vegano</option>
                   </select>
                 </div>
                 <button

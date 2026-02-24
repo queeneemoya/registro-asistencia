@@ -8,7 +8,7 @@ Aplicación web con **Next.js**, **Tailwind CSS** y **Supabase (PostgreSQL)** pa
 - Buscar por RUT (con dígito verificador).
 - Ver nombre y **carrera**.
 - Registrar asistencia (obligatorio).
-- Indicar restricción alimentaria: ninguna, vegano, vegetariano o celíaco.
+- Indicar restricción alimentaria: ninguna, celíaco o vegetariano/vegano.
 
 ### Vista Administrador
 - Subir archivo **XLS/XLSX** con columnas: RUT, DV, nombres, apellido paterno, apellido materno, correo UAI, sección CORE, **carrera**.

@@ -1,4 +1,4 @@
-export type RestriccionAlimentaria = 'ninguna' | 'vegano' | 'vegetariano' | 'celiaco';
+export type RestriccionAlimentaria = 'ninguna' | 'celiaco' | 'vegetariano_vegano';
 
 export interface Persona {
   id: string;

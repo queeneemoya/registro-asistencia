@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import type { RestriccionAlimentaria } from '@/lib/types';
 
-const RESTRICCIONES: RestriccionAlimentaria[] = ['ninguna', 'vegano', 'vegetariano', 'celiaco'];
+const RESTRICCIONES: RestriccionAlimentaria[] = ['ninguna', 'celiaco', 'vegetariano_vegano'];
+// En la base de datos guardamos 'vegetariano' para el CHECK (ninguna, celiaco, vegetariano)
+const RESTRICCION_TO_DB: Record<RestriccionAlimentaria, string> = {
+  ninguna: 'ninguna',
+  celiaco: 'celiaco',
+  vegetariano_vegano: 'vegetariano',
+};
 
 // POST /api/asistencia - Registrar asistencia (vista usuario)
 export async function POST(request: NextRequest) {
@@ -22,10 +28,12 @@ export async function POST(request: NextRequest) {
     ? (restriccion_alimentaria as RestriccionAlimentaria)
     : 'ninguna';
 
+  const valorDb = RESTRICCION_TO_DB[restriccion];
+
   const { data, error } = await supabase
     .from('asistencias')
     .upsert(
-      { persona_id, restriccion_alimentaria: restriccion },
+      { persona_id, restriccion_alimentaria: valorDb },
       { onConflict: 'persona_id' }
     )
     .select()
