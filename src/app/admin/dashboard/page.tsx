@@ -35,6 +35,7 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"todos" | "registrados" | "sin-registrar">("todos");
+  const [busquedaApellido, setBusquedaApellido] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -143,6 +144,14 @@ export default function AdminDashboardPage() {
         : personas;
 
   const carrerasExistentes = Array.from(new Set(personas.map((p) => p.carrera).filter((c): c is string => !!c))).sort();
+
+  const term = busquedaApellido.trim().toLowerCase();
+  const filteredByApellido = term
+    ? filtered.filter(
+        (p) =>
+          p.apellido_paterno.toLowerCase().includes(term) || p.apellido_materno.toLowerCase().includes(term)
+      )
+    : filtered;
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
@@ -336,6 +345,22 @@ export default function AdminDashboardPage() {
             ))}
           </div>
 
+          {!loading && (
+            <div className="px-4 py-3 border-b border-slate-200 bg-slate-50/50">
+              <label className="sr-only" htmlFor="buscar-apellido">
+                Buscar por apellido
+              </label>
+              <input
+                id="buscar-apellido"
+                type="text"
+                value={busquedaApellido}
+                onChange={(e) => setBusquedaApellido(e.target.value)}
+                placeholder="Buscar por apellido paterno o materno…"
+                className="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none"
+              />
+            </div>
+          )}
+
           {loading ? (
             <div className="p-12 text-center text-slate-500">Cargando…</div>
           ) : (
@@ -353,7 +378,7 @@ export default function AdminDashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((p) => (
+                  {filteredByApellido.map((p) => (
                     <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50/50">
                       <td className="px-4 py-3 font-mono">
                         {p.rut}-{p.dv}
@@ -406,8 +431,10 @@ export default function AdminDashboardPage() {
                   ))}
                 </tbody>
               </table>
-              {filtered.length === 0 && (
-                <div className="p-12 text-center text-slate-500">No hay registros</div>
+              {filteredByApellido.length === 0 && (
+                <div className="p-12 text-center text-slate-500">
+                  {filtered.length === 0 ? "No hay registros" : "Ningún resultado para ese apellido"}
+                </div>
               )}
             </div>
           )}
@@ -457,6 +484,7 @@ function AddPersonaModal({
     seccion_core: "",
     carrera: "",
   });
+  const [restriccionAlimentaria, setRestriccionAlimentaria] = useState<"ninguna" | "celiaco" | "vegetariano">("ninguna");
   const [carreraOtra, setCarreraOtra] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -473,6 +501,7 @@ function AddPersonaModal({
           ...form,
           correo_uai: form.correo_uai || undefined,
           carrera: form.carrera || carreraOtra.trim() || undefined,
+          restriccion_alimentaria: restriccionAlimentaria,
         }),
       });
       const data = await res.json();
@@ -557,6 +586,18 @@ function AddPersonaModal({
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               required
             />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Restricción alimentaria</label>
+            <select
+              value={restriccionAlimentaria}
+              onChange={(e) => setRestriccionAlimentaria(e.target.value as "ninguna" | "celiaco" | "vegetariano")}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            >
+              <option value="ninguna">Ninguna</option>
+              <option value="celiaco">Celíaco</option>
+              <option value="vegetariano">Vegetariano/vegano</option>
+            </select>
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Carrera</label>

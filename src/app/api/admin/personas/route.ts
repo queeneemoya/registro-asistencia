@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
-  const body = await request.json().catch(() => ({})) as PersonaInsert;
+  const body = await request.json().catch(() => ({})) as PersonaInsert & { restriccion_alimentaria?: string };
   const {
     rut,
     dv,
@@ -58,7 +58,12 @@ export async function POST(request: NextRequest) {
     correo_uai,
     seccion_core,
     carrera,
+    restriccion_alimentaria,
   } = body;
+
+  const restriccionDb = ['ninguna', 'celiaco', 'vegetariano'].includes(restriccion_alimentaria ?? '')
+    ? restriccion_alimentaria
+    : 'ninguna';
 
   if (!rut || !dv || !nombres || !apellido_paterno || !apellido_materno || !seccion_core) {
     return NextResponse.json(
@@ -88,6 +93,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Ya existe una persona con ese RUT y DV' }, { status: 409 });
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  const { error: errorAsistencia } = await supabase
+    .from('asistencias')
+    .insert({ persona_id: data.id, restriccion_alimentaria: restriccionDb });
+
+  if (errorAsistencia) {
+    return NextResponse.json({ error: errorAsistencia.message }, { status: 500 });
   }
 
   return NextResponse.json(data);
