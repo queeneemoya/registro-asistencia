@@ -33,6 +33,23 @@ CREATE INDEX IF NOT EXISTS idx_personas_seccion_core ON personas(seccion_core);
 CREATE INDEX IF NOT EXISTS idx_personas_carrera ON personas(carrera);
 CREATE INDEX IF NOT EXISTS idx_asistencias_persona_id ON asistencias(persona_id);
 
+-- Secciones marcadas como "subida a buses" (solo admin)
+CREATE TABLE IF NOT EXISTS secciones_buses (
+  seccion_core TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE secciones_buses ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Permitir todo secciones_buses" ON secciones_buses FOR ALL USING (true) WITH CHECK (true);
+
+-- Secciones con almuerzo (especial) entregado por sección CORE
+CREATE TABLE IF NOT EXISTS secciones_almuerzo_entregado (
+  seccion_core TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE secciones_almuerzo_entregado ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Permitir todo secciones_almuerzo_entregado" ON secciones_almuerzo_entregado FOR ALL USING (true) WITH CHECK (true);
+
 -- RLS (Row Level Security) - opcional: permite anónimo para lectura de personas por RUT y para insertar asistencias
 ALTER TABLE personas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE asistencias ENABLE ROW LEVEL SECURITY;
@@ -83,3 +100,8 @@ CREATE TRIGGER personas_updated_at
 -- Si tenías "vegano" o "vegetariano" y ahora usas solo "vegetariano_vegano":
 -- UPDATE asistencias SET restriccion_alimentaria = 'vegetariano_vegano' WHERE restriccion_alimentaria IN ('vegano', 'vegetariano');
 -- Luego ajustar el CHECK a: IN ('ninguna', 'celiaco', 'vegetariano_vegano').
+
+-- Tabla para marcar secciones "subida a buses" (ejecutar si no existe):
+-- CREATE TABLE IF NOT EXISTS secciones_buses (seccion_core TEXT PRIMARY KEY, created_at TIMESTAMPTZ DEFAULT now());
+-- ALTER TABLE secciones_buses ENABLE ROW LEVEL SECURITY;
+-- CREATE POLICY "Permitir todo secciones_buses" ON secciones_buses FOR ALL USING (true) WITH CHECK (true);

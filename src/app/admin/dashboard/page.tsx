@@ -42,13 +42,19 @@ export default function AdminDashboardPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [quitandoId, setQuitandoId] = useState<string | null>(null);
   const [vaciendo, setVaciando] = useState(false);
+  const [seccionesEnBuses, setSeccionesEnBuses] = useState<string[]>([]);
+  const [togglingBuses, setTogglingBuses] = useState<string | null>(null);
+  const [seccionesAlmuerzoEntregado, setSeccionesAlmuerzoEntregado] = useState<string[]>([]);
+  const [togglingAlmuerzo, setTogglingAlmuerzo] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError("");
     try {
-      const [listRes, statsRes] = await Promise.all([
+      const [listRes, statsRes, busesRes, almuerzoRes] = await Promise.all([
         fetch("/api/admin/personas"),
         fetch("/api/admin/stats"),
+        fetch("/api/admin/buses"),
+        fetch("/api/admin/almuerzo-entregado"),
       ]);
       if (!listRes.ok) {
         if (listRes.status === 401) {
@@ -62,6 +68,14 @@ export default function AdminDashboardPage() {
       setPersonas(list);
       if (statsRes.ok) {
         setStats(await statsRes.json());
+      }
+      if (busesRes.ok) {
+        const buses = await busesRes.json();
+        setSeccionesEnBuses(buses);
+      }
+      if (almuerzoRes.ok) {
+        const almuerzo = await almuerzoRes.json();
+        setSeccionesAlmuerzoEntregado(almuerzo);
       }
     } finally {
       setLoading(false);
@@ -136,6 +150,63 @@ export default function AdminDashboardPage() {
     }
   }
 
+  async function toggleBuses(seccion_core: string) {
+    setTogglingBuses(seccion_core);
+    const estaEnBuses = seccionesEnBuses.includes(seccion_core);
+    try {
+      if (estaEnBuses) {
+        const res = await fetch(`/api/admin/buses?seccion_core=${encodeURIComponent(seccion_core)}`, { method: "DELETE" });
+        if (!res.ok) {
+          setError("Error al quitar de buses");
+          return;
+        }
+        setSeccionesEnBuses((prev) => prev.filter((s) => s !== seccion_core));
+      } else {
+        const res = await fetch("/api/admin/buses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ seccion_core }),
+        });
+        if (!res.ok) {
+          setError("Error al marcar subida a buses");
+          return;
+        }
+        setSeccionesEnBuses((prev) => [...prev, seccion_core].sort());
+      }
+    } finally {
+      setTogglingBuses(null);
+    }
+  }
+
+  async function toggleAlmuerzo(seccion_core: string) {
+    setTogglingAlmuerzo(seccion_core);
+    setError("");
+    try {
+      const estaEntregado = seccionesAlmuerzoEntregado.includes(seccion_core);
+      if (estaEntregado) {
+        const res = await fetch(`/api/admin/almuerzo-entregado?seccion_core=${encodeURIComponent(seccion_core)}`, { method: "DELETE" });
+        if (!res.ok) {
+          setError("Error al quitar marca de almuerzo entregado");
+          return;
+        }
+        setSeccionesAlmuerzoEntregado((prev) => prev.filter((s) => s !== seccion_core));
+      } else {
+        const res = await fetch("/api/admin/almuerzo-entregado", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ seccion_core }),
+        });
+        if (!res.ok) {
+          setError("Error al marcar almuerzo entregado");
+          return;
+        }
+        setSeccionesAlmuerzoEntregado((prev) => [...prev, seccion_core].sort());
+      }
+    } finally {
+      setTogglingAlmuerzo(null);
+    }
+  }
+
   const filtered =
     tab === "registrados"
       ? personas.filter((p) => p.asistencia)
@@ -144,6 +215,23 @@ export default function AdminDashboardPage() {
         : personas;
 
   const carrerasExistentes = Array.from(new Set(personas.map((p) => p.carrera).filter((c): c is string => !!c))).sort();
+
+  const porSeccionRestriccion: Record<string, { vegetariano_vegano: number; celiaco: number }> = {};
+  const seccionesUnicas = Array.from(new Set(personas.map((p) => p.seccion_core).filter((s): s is string => !!s)));
+  for (const sec of seccionesUnicas) porSeccionRestriccion[sec] = { vegetariano_vegano: 0, celiaco: 0 };
+  for (const p of personas) {
+    if (!p.asistencia) continue;
+    const sec = p.seccion_core;
+    const r = p.asistencia.restriccion_alimentaria;
+    if (r === "vegetariano" || r === "vegano" || r === "vegetariano_vegano") porSeccionRestriccion[sec].vegetariano_vegano += 1;
+    else if (r === "celiaco") porSeccionRestriccion[sec].celiaco += 1;
+  }
+  const seccionesParaRestriccion = Object.keys(porSeccionRestriccion).sort((a, b) => {
+    const na = Number(a);
+    const nb = Number(b);
+    if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
+    return a.localeCompare(b, undefined, { numeric: true });
+  });
 
   const term = busquedaApellido.trim().toLowerCase();
   const filteredByApellido = term
@@ -201,13 +289,15 @@ export default function AdminDashboardPage() {
             {Object.keys(stats.por_seccion).length > 0 && (
               <div className="bg-white rounded-xl border border-slate-200 p-5">
                 <h2 className="font-semibold text-slate-800 mb-3">Por sección CORE</h2>
-                <div className="overflow-x-auto">
+                <p className="text-xs text-slate-500 mb-3">Marque cuando la sección ya se haya subido a los buses.</p>
+                <div className="max-h-[500px] overflow-auto overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead>
+                    <thead className="sticky top-0 z-10 bg-slate-50 shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
                       <tr className="text-left text-slate-500 border-b border-slate-200">
-                        <th className="pb-2 pr-4">Sección</th>
-                        <th className="pb-2 pr-4">Total</th>
-                        <th className="pb-2">Registrados</th>
+                        <th className="pb-2 pt-1 pr-4 bg-slate-50">Sección</th>
+                        <th className="pb-2 pt-1 pr-4 bg-slate-50">Total</th>
+                        <th className="pb-2 pt-1 pr-4 bg-slate-50">Registrados</th>
+                        <th className="pb-2 pt-1 bg-slate-50">Buses</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -215,7 +305,22 @@ export default function AdminDashboardPage() {
                         <tr key={sec} className="border-b border-slate-100">
                           <td className="py-2 pr-4 font-medium text-slate-800">{sec}</td>
                           <td className="py-2 pr-4">{total}</td>
-                          <td className="py-2 text-emerald-600">{registrados}</td>
+                          <td className="py-2 pr-4 text-emerald-600">{registrados}</td>
+                          <td className="py-2">
+                            <button
+                              type="button"
+                              onClick={() => toggleBuses(sec)}
+                              disabled={togglingBuses === sec}
+                              title={seccionesEnBuses.includes(sec) ? "Quitar marca de subida a buses" : "Marcar como subida a buses"}
+                              className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+                                seccionesEnBuses.includes(sec)
+                                  ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                                  : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                              } disabled:opacity-50`}
+                            >
+                              {togglingBuses === sec ? "…" : seccionesEnBuses.includes(sec) ? "✓ Subida" : "Marcar"}
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -248,6 +353,52 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Restricciones por sección CORE */}
+        {seccionesParaRestriccion.length > 0 && (
+          <div className="bg-white rounded-xl border border-slate-200 p-5 mb-8">
+            <h2 className="font-semibold text-slate-800 mb-3">Restricciones por sección CORE</h2>
+            <p className="text-sm text-slate-500 mb-3">
+              Personas registradas con restricción alimentaria, por sección. Marque cuando ya se haya entregado el almuerzo especial a esa sección.
+            </p>
+            <div className="max-h-[500px] overflow-auto overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 z-10 bg-slate-50 shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
+                  <tr className="text-left text-slate-500 border-b border-slate-200">
+                    <th className="pb-2 pt-1 pr-4 bg-slate-50">Sección CORE</th>
+                    <th className="pb-2 pt-1 pr-4 bg-slate-50">Vegetariano/vegano</th>
+                    <th className="pb-2 pt-1 pr-4 bg-slate-50">Celíaco</th>
+                    <th className="pb-2 pt-1 bg-slate-50">Almuerzo entregado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {seccionesParaRestriccion.map((sec) => (
+                    <tr key={sec} className="border-b border-slate-100">
+                      <td className="py-2 pr-4 font-medium text-slate-800">{sec}</td>
+                      <td className="py-2 pr-4">{porSeccionRestriccion[sec].vegetariano_vegano}</td>
+                      <td className="py-2 pr-4">{porSeccionRestriccion[sec].celiaco}</td>
+                      <td className="py-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleAlmuerzo(sec)}
+                          disabled={togglingAlmuerzo === sec}
+                          title={seccionesAlmuerzoEntregado.includes(sec) ? "Quitar marca de almuerzo entregado" : "Marcar almuerzo entregado"}
+                          className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+                            seccionesAlmuerzoEntregado.includes(sec)
+                              ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                              : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                          } disabled:opacity-50`}
+                        >
+                          {togglingAlmuerzo === sec ? "…" : seccionesAlmuerzoEntregado.includes(sec) ? "✓ Entregado" : "Marcar"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
